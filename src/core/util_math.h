@@ -99,6 +99,7 @@ unsigned long ck_ensurepow2( unsigned long i );
 
 // floating point equals
 t_CKBOOL ck_equals( t_CKFLOAT lhs, t_CKFLOAT rhs );
+t_CKBOOL ck_equals_ex( t_CKFLOAT lhs, t_CKFLOAT rhs, t_CKFLOAT epsilon );
 // magnitude of complex number
 t_CKFLOAT ck_complex_magnitude( const t_CKCOMPLEX & cmp );
 // phase of complex number
@@ -111,8 +112,12 @@ t_CKFLOAT ck_vec2_phase( const t_CKVEC2 & v );
 t_CKFLOAT ck_vec3_magnitude( const t_CKVEC3 & v );
 // magnitude of vec4
 t_CKFLOAT ck_vec4_magnitude( const t_CKVEC4 & v );
-
-
+// integer factorial (for up to 12! which is the largest factorial that can fit inside a 32-bit integer)
+t_CKINT ck_factorial32( t_CKINT n );
+// associated legendre for spherical harmonics | (added) 1.5.5.8 by everett 2026
+t_CKFLOAT ck_associated_legendre( const t_CKINT m, const t_CKINT l, const t_CKFLOAT x );
+// spherical harmonics | (added) 1.5.5.8 by everett 2026
+void ck_SH( t_CKFLOAT* output, const t_CKUINT order_, const t_CKFLOAT azimuth_, const t_CKFLOAT zenith_, const t_CKBOOL n3d );
 
 #if defined (__cplusplus) || defined(_cplusplus)
 }
