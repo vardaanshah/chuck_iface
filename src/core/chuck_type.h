@@ -844,6 +844,9 @@ public:
     std::map<std::string, t_CKBOOL> key_types;
     std::map<std::string, t_CKBOOL> key_values;
 
+    //redirect map
+    std::map<std::tuple<t_CKBOOL,t_CKVALUE,t_CKVALUE>, std::tuple<t_CKBOOL,t_CKVALUE,t_CKVALUE>> redirect_map;
+
     // operators mapping registry | 1.5.1.5
     Chuck_Op_Registry op_registry;
 
@@ -1021,6 +1024,10 @@ struct Chuck_Type : public Chuck_Object
     std::string base_name;
     // type parent (could be NULL)
     Chuck_Type * parent_type;
+    //the types that this type implements
+    std::vector<t_CKTYPE> implementing_types;
+    std::unordered_map<Chuck_Func *, Chuck_Func *> thunk;
+    t_CKUINT how_many_impl;
     // size (in bytes)
     t_CKUINT size;
     // owner of the type
@@ -1039,6 +1046,8 @@ struct Chuck_Type : public Chuck_Object
     Chuck_UGen_Info * ugen_info;
     // is public class | 1.5.4.0 (ge) added
     t_CKBOOL is_public;
+    //is interface
+    t_CKBOOL is_iface;
     // copy
     t_CKBOOL is_copy;
     // defined
@@ -1199,7 +1208,8 @@ struct Chuck_Value : public Chuck_VM_Object
     Chuck_Func * func_ref;
     // overloads
     t_CKINT func_num_overloads;
-
+    // direct to
+    Chuck_Value * redirect_to;
     // dependency tracking | 1.5.0.8 (ge) added
     // code position of where this value is considered initialized
     // NOTE used to determine dependencies within a file context
@@ -1448,6 +1458,7 @@ Chuck_Type  * type_engine_find_common_anc( Chuck_Type * lhs, Chuck_Type * rhs );
 Chuck_Type  * type_engine_find_type( Chuck_Env * env, a_Id_List path );
 // 1.5.0.0 (ge) added | 1.5.4.5 (ge & alex) added expandToUser=TRUE optional argument
 Chuck_Type  * type_engine_find_type( Chuck_Env * env, const std::string & name, t_CKBOOL expandToUser = TRUE );
+Chuck_Type * type_engine_find_type_interfaces( Chuck_Env * env, a_Id_List thePath );
 Chuck_Value * type_engine_find_value( Chuck_Type * type, const std::string & xid );
 Chuck_Value * type_engine_find_value( Chuck_Type * type, S_Symbol xid );
 Chuck_Value * type_engine_find_value( Chuck_Env * env, const std::string & xid, t_CKBOOL climb, t_CKBOOL stayWithClassDef = FALSE, int linepos = 0 );

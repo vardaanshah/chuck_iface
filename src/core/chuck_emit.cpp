@@ -3436,6 +3436,8 @@ t_CKBOOL emit_engine_emit_op_at_chuck( Chuck_Emitter * emit, a_Exp lhs, a_Exp rh
     // any implicit cast happens before this
     Chuck_Type * left = lhs->cast_to ? lhs->cast_to : lhs->type;
     Chuck_Type * right = rhs->cast_to ? rhs->cast_to : rhs->type;
+    std::tuple<t_CKBOOL, t_CKVALUE,t_CKVALUE> link_val;
+    std::tuple<t_CKBOOL, t_CKVALUE,t_CKVALUE> link_key;
 
     // assignment or something else
     if( isa( left, right ) )
@@ -3496,6 +3498,42 @@ t_CKBOOL emit_engine_emit_op_at_chuck( Chuck_Emitter * emit, a_Exp lhs, a_Exp rh
         }
         else // objects
         {
+            if (right->is_iface)
+            {
+                t_CKVALUE l_val;
+                t_CKVALUE l_base;
+                t_CKVALUE r_val;
+                t_CKVALUE r_base;
+                t_CKBOOL r_is_member;
+                t_CKBOOL l_is_member;
+
+                r_base = rhs->primary.value;
+                r_val = rhs->primary.value;
+                r_is_member = FALSE;
+                l_base = lhs->primary.value;
+                l_val = lhs->primary.value;
+                l_is_member = FALSE;
+
+                if (rhs->s_type == ae_exp_dot_member)
+                {
+                    r_base = rhs->dot_member.base->primary.value;
+                    r_val = type_engine_find_value( r_base->type, rhs->dot_member.xid );
+                    r_is_member = TRUE;
+
+                }
+                if (lhs->s_type == ae_exp_dot_member)
+                {
+                    l_base = lhs->dot_member.base->primary.value;
+                    l_val = type_engine_find_value( l_base->type, lhs->dot_member.xid );
+                    l_is_member = TRUE;
+
+                }
+                link_val = {l_is_member, l_base, l_val};
+                link_key = {r_is_member, r_base, r_val};
+                emit->env->redirect_map[link_key] = link_val;
+               
+            }/* code */
+            
             // assign object
             emit->append( new Chuck_Instr_Assign_Object );
 
@@ -4771,6 +4809,9 @@ t_CKBOOL emit_engine_emit_exp_dot_member( Chuck_Emitter * emit,
     // the pointer
     Chuck_Instr * instr = NULL;
 
+    std::tuple<t_CKBOOL, t_CKVALUE,t_CKVALUE> v_key;
+    std::tuple<t_CKBOOL, t_CKVALUE,t_CKVALUE> v_val;
+
     // type of the base
     t_CKUINT tbase_xid = member->t_base->xid;
     // switch on it
@@ -4829,6 +4870,38 @@ t_CKBOOL emit_engine_emit_exp_dot_member( Chuck_Emitter * emit,
             // get the func
             value = type_engine_find_value( t_base, member->xid );
             func = value->func_ref;
+
+            if (emit->env->func)
+            {
+                printf("placeholder");
+            }
+
+            //if the base is an interface value, dereference the interface value
+            if (t_base->is_iface && !(emit->env->func))
+            {
+                value = member->base->primary.value;
+                t_base = value->type;
+                v_key = {FALSE,value,value};
+
+                //i cannot seem to get multiple referencing to work as i would expect it to
+                //it also does not work with regular classes, so i'm just going to say that's not my problem for now.
+                
+                // while (t_base->is_iface)
+                // {
+                //     v_val = emit->env->redirect_map[v_key];
+                //     value = std::get<1>(v_val);
+                //     //value = value->redirect_to;
+                //     t_base = value->type;
+                //     v_key = v_val;
+                // }
+                
+                v_val = emit->env->redirect_map[v_key];
+                value = std::get<1>(v_val);
+                t_base = value->type;
+
+                func = t_base->thunk[func];
+            }
+
             // make sure it's there
             assert( func != NULL );
 
@@ -4870,6 +4943,28 @@ t_CKBOOL emit_engine_emit_exp_dot_member( Chuck_Emitter * emit,
             // get the value
             // value = t_base->info->lookup_value( member->xid, FALSE );
             value = type_engine_find_value( t_base, member->xid );
+            
+            //if the value is an iface value, deref the iface value
+            // if (value->type->is_iface && !(emit->env->func))
+            // {
+
+            //     t_base = value->type;
+            //     v_key = {TRUE, member->base->primary.value,value};                
+
+            //     while (t_base->is_iface)
+            //     {
+            //         v_val = emit->env->redirect_map[v_key];
+            //         value = std::get<2>(v_val);
+            //         //value = value->redirect_to;
+            //         t_base = value->type;
+            //         v_key = v_val;
+            //     }
+            //     //rhs->primary.value->redirect_to = lhs->primary.value;
+            //     //t_base = member->base->primary.value->redirect_to->type;
+            //     //t_base = type_engine_find_value(emit->env,absyn2str( member->base, FALSE),FALSE,FALSE )->redirect_to->type;
+            //     //member->t_base = t_base;
+            // }
+            
             // make sure it's there
             assert( value != NULL );
 

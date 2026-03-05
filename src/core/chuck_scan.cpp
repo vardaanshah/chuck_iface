@@ -173,7 +173,7 @@ t_CKBOOL type_engine_scan0_prog( Chuck_Env * env, a_Program prog,
             // -----------------------------------------
 
             // make global, if marked public
-            if( prog->section->class_def->decl == ae_key_public )
+            if( prog->section->class_def->decl == ae_key_public || prog->section->class_def->iface )
             {
                 // 1.5.4.0 (ge) removing restriction of one public class per file
                 // ---------------- legacy note ------------
@@ -298,6 +298,14 @@ t_CKBOOL type_engine_scan0_class_def( Chuck_Env * env, a_Class_Def class_def )
     { the_class->nspc->parent = env->context->nspc; }
     else { the_class->nspc->parent = env->curr; }
 
+    if ( class_def->iface )
+    {   
+        the_class->is_iface = TRUE;
+    }
+    else 
+    { 
+        the_class->is_iface = FALSE;
+    } 
     // 1.5.0.5 (ge) commented out; the AST is cleaned up after every compilation;
     // would need to make deep copy if want to keep around
     // the_class->def = class_def;
@@ -328,12 +336,25 @@ t_CKBOOL type_engine_scan0_class_def( Chuck_Env * env, a_Class_Def class_def )
         switch( body->section->s_type )
         {
         case ae_section_stmt:
+            if (class_def->iface)
+            {
+                EM_error2( class_def->where,
+                          "cannot declare statements within an interface declaration" );
+                ret = FALSE; goto done;
+            }
             break;
 
         case ae_section_func:
             break;
 
         case ae_section_class:
+            // if iface, then not allowed
+            if (class_def->iface)
+            {
+                EM_error2( class_def->where,
+                          "cannot declare classes within an interface declaration" );
+                ret = FALSE; goto done;
+            }
             // check for public | 1.5.4.0 (ge) added
             if( body->section->class_def->decl == ae_key_public )
             {
@@ -1532,6 +1553,13 @@ t_CKBOOL type_engine_scan1_func_def( Chuck_Env * env, a_Func_Def f )
             return FALSE;
         }
 
+        // make sure we're not in an interface
+        if ( env->class_def->is_iface )
+        {
+            EM_error2( f->where, "@construct() cannot be used for interface types..." );
+            return FALSE;
+        }
+
         // substitute class name
         f->name = insert_symbol( env->class_def->base_name.c_str() );
     }
@@ -1542,6 +1570,12 @@ t_CKBOOL type_engine_scan1_func_def( Chuck_Env * env, a_Func_Def f )
         if( !env->class_def )
         {
             EM_error2( f->where, "@destruct() can only be used within class definitions..." );
+            return FALSE;
+        }
+        // make sure we're not in an interface
+        if ( env->class_def->is_iface )
+        {
+            EM_error2( f->where, "@destruct() cannot be used for interface types..." );
             return FALSE;
         }
         // make sure there are no arguments
@@ -2588,6 +2622,14 @@ t_CKBOOL type_engine_scan2_exp_decl_create( Chuck_Env * env, a_Exp_Decl decl )
                 type->c_name() );
             return FALSE;
         }
+
+        if (type->is_iface)
+        {
+            EM_error2( decl->where,
+                "interface types must be declared as references only",
+                type->c_name() );
+            return FALSE;
+        }
     }
 
     // primitive
@@ -2899,6 +2941,10 @@ t_CKBOOL type_engine_scan2_class_def( Chuck_Env * env, a_Class_Def class_def )
     t_CKBOOL ret = TRUE;
     // the class body
     a_Class_Body body = class_def->body;
+    //the list of ifaces the class conforms to
+    a_Id_List implmement_id = NULL;
+    std::vector<Chuck_Func *> my_funcs;
+    std::vector<Chuck_Func *> impl_required_functions;
     // the class
     Chuck_Type * the_class = class_def->type;
     // make sure
@@ -2948,6 +2994,7 @@ t_CKBOOL type_engine_scan2_class_def( Chuck_Env * env, a_Class_Def class_def )
 
     // the parent class | 1.5.1.5 (ge) moved from chuck_type module for earlier info
     t_CKTYPE t_parent = NULL;
+    t_CKTYPE t_conforms = NULL;
 
     // make sure inheritance
     // TODO: sort!
@@ -2977,7 +3024,104 @@ t_CKBOOL type_engine_scan2_class_def( Chuck_Env * env, a_Class_Def class_def )
             }
         }
 
-        // TODO: interface
+        if( class_def->ext->impl_list )
+        {
+            the_class->nspc->get_funcs(my_funcs);
+            implmement_id = class_def->ext->impl_list;
+            while ( ret && implmement_id )
+            {
+                t_conforms = type_engine_find_type_interfaces( env, implmement_id );
+                //t_conforms = type_engine_find_type( env, implmement_id );
+                if ( !t_conforms )
+                {
+                    EM_error2( class_def->ext->impl_list->where,
+                        "undefined interface '%s' in definition of class '%s'",
+                        type_path(class_def->ext->impl_list), S_name(class_def->name->xid) );
+                    return FALSE;
+                }
+
+                // must not be primitive
+                if( isprim( env, t_conforms ) )
+                {
+                    EM_error2( class_def->ext->impl_list->where,
+                        "cannot implement primitive type '%s'",
+                        t_conforms->c_name() );
+                    EM_error2( 0, "...(primitive types: 'int', 'float', 'time', 'dur', 'vec3', etc.)" );
+                    return FALSE;
+                }
+
+                the_class->implementing_types.push_back(t_conforms);
+                if (!the_class->how_many_impl)
+                {
+                    the_class->how_many_impl = 1;
+                }
+                else
+                {
+                    the_class->how_many_impl++;
+                }
+
+                t_conforms->nspc->get_funcs(impl_required_functions);
+                Chuck_Func * the_func;
+                Chuck_Func * req_func;
+                std::string req_name;
+                std::string new_name;
+                t_CKTYPE req_ret;
+                t_CKTYPE new_ret;
+                a_Arg_List req_args;
+                a_Arg_List new_args;
+
+
+                for (vector<Chuck_Func *>::iterator it = impl_required_functions.begin(); it != impl_required_functions.end(); ++it) 
+                {
+                    req_func = *it;
+                    req_name = req_func->base_name;
+                    the_func = the_class->nspc->lookup_func(req_name,0,TRUE);
+                    if (!the_func)
+                    {
+                        EM_error2( class_def->ext->impl_list->where,
+                        "cannot find function '%s' in definition of class '%s'",
+                        req_name.c_str(), S_name(class_def->name->xid) );
+                        return FALSE;
+                    }
+
+                    if (the_func->type() != req_func->type()) 
+                    {
+                        EM_error2( class_def->ext->impl_list->where,
+                        "function '%s' in definition of class '%s' does not have the required return type.",
+                        req_name.c_str(), S_name(class_def->name->xid) );
+                        return FALSE;
+                    }
+
+                    req_args = req_func->def()->arg_list;
+                    new_args = the_func->def()->arg_list;
+
+                    while (req_args && new_args)
+                    {
+                        if (req_args->type != new_args->type) {
+                             EM_error2( class_def->ext->impl_list->where,
+                            "function '%s' in definition of class '%s' has the wrong arguments",
+                            req_name.c_str(), S_name(class_def->name->xid) );
+                            return FALSE;
+                        }
+                        req_args = req_args->next;
+                        new_args = new_args->next;
+                    }
+
+                    if (req_args || new_args)
+                    {
+                        EM_error2( class_def->ext->impl_list->where,
+                        "function '%s' in definition of class '%s' has the wrong number of arguments",
+                        req_name.c_str(), S_name(class_def->name->xid) );
+                        return FALSE;
+                    }
+
+                    the_class->thunk[req_func] = the_func;
+
+                }
+
+                implmement_id = implmement_id->next;
+            }
+        }
     }
 
     // by default object

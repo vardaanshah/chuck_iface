@@ -4401,7 +4401,7 @@ std::string Chuck_VM_Debug::info_type( Chuck_Type * type )
     // namescpace
     // if( type->owner ) s += info_namespace( type->owner ) + " ";
     // function?
-    if( type->func ) s += info_func( type->func );
+    //if( type->func ) s += info_func( type->func );
 
     // backtrace();
     return s;

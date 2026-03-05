@@ -126,6 +126,8 @@ Chuck_Type * create_new_array_type( Chuck_Env * env, Chuck_Type * array_parent,
                                     t_CKUINT depth, Chuck_Type * base_type
                                     /*, Chuck_Namespace * owner_nspc*/ );
 
+
+
 // helper macros
 #define CK_LR( L, R )      if( (left->xid == L) && (right->xid == R) )
 #define CK_COMMUTE( L, R ) if( ( (left->xid == L) && (right->xid == R) ) || \
@@ -3562,6 +3564,13 @@ t_CKTYPE type_engine_check_exp_unary( Chuck_Env * env, a_Exp_Unary unary )
                 return NULL;
             }
 
+            if (t->is_iface)
+            {
+                EM_error2( unary->where,
+                    "cannot use 'new' on interface types" );
+                return NULL;
+            }
+
             // check if return type is an Obj | 1.5.1.8
             if( isobj( env, t ) && env->stmt_stack.size() )
             {
@@ -5671,13 +5680,18 @@ t_CKBOOL type_engine_check_func_def( Chuck_Env * env, a_Func_Def f )
     if( f->s_type == ae_func_user ) has_code = ( f->code != NULL );
     else has_code = (f->dl_func_ptr != NULL); // imported
 
-//    // if interface, then cannot have code | a_Class_Def class_def->def removed for now
-//    if( env->class_def && env->class_def->def && env->class_def->def->iface && has_code )
-//    {
-//        EM_error2( f->where, "interface function signatures cannot contain code..." );
-//        EM_error2( f->where, "...at function '%s'", S_name(f->name) );
-//        goto error;
-//    }
+   // if interface, then cannot have code | a_Class_Def class_def->def removed
+   if( env->class_def && env->class_def->is_iface && has_code)
+   {
+       EM_error2( f->where, "interface function signatures cannot contain code..." );
+       EM_error2( f->where, "...at function '%s'", S_name(f->name) );
+       goto error;
+   }
+   else if ( env->class_def && env->class_def->is_iface && !has_code)
+   {
+        f->static_decl = ae_key_abstract;
+   }
+   
 
     // if pure, then cannot have code
     if( f->static_decl == ae_key_abstract && has_code )
@@ -6358,6 +6372,16 @@ t_CKBOOL isa_levels( const Chuck_Type & lhs, const Chuck_Type & rhs, t_CKUINT & 
 
     // back to 0
     levels = 0;
+    
+    if (lhs.how_many_impl && lhs.how_many_impl > 0)
+    {
+        for (t_CKINT it = 0; it < lhs.how_many_impl; ++it) {
+            curr = lhs.implementing_types.at(it);
+            if (*curr == rhs) return TRUE;
+        }
+    }
+    
+    
 
     return FALSE;
 }
@@ -6597,6 +6621,10 @@ Chuck_Func * type_engine_check_ctor_call( Chuck_Env * env, Chuck_Type * type, a_
         return NULL;
     }
 
+    if (type->is_iface > 0)
+    {
+        EM_error2( where, "cannot invoke a constructor on an interface object...", actualType->c_name() );
+    }
     // check the arguments
     if( ctorInfo->args )
     {
@@ -6921,7 +6949,49 @@ Chuck_Type * type_engine_find_type( Chuck_Env * env, a_Id_List thePath )
     return type;
 }
 
+Chuck_Type * type_engine_find_type_interfaces( Chuck_Env * env, a_Id_List thePath )
+{
+    S_Symbol xid = NULL;
+    Chuck_Type * t = NULL;
+    // get base type
+    Chuck_Type * type = env->curr->lookup_type( thePath->xid, TRUE );
+    if( !type )
+    {
+        // check level
+        if( env->deprecate_level > 0 )
+            type = type_engine_find_deprecated_type( env, thePath );
 
+        // error
+        if( !type )
+        {
+            EM_error2( thePath->where, "IFACES 1 undefined type '%s'...",
+                type_path( thePath ) );
+            return NULL;
+        }
+    }
+    // start the namespace
+    Chuck_Namespace * theNpsc = env->curr;
+    //thePath = thePath->next;
+
+    xid = thePath->xid;
+    t = type_engine_find_type( theNpsc->parent, xid );
+
+    if( !t )
+    {
+        // error
+        EM_error2( thePath->where, "IFACES 2 undefined type '%s'...",
+            type_path( thePath ) );
+        EM_error2( thePath->where,
+            "IFACE...(cannot find class '%s' in namespace '%s')",
+            S_name(xid), theNpsc->name.c_str() );
+        return NULL;
+    }
+
+    type = t;
+
+
+    return type;
+}
 
 
 //-----------------------------------------------------------------------------
