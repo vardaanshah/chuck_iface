@@ -1,0 +1,3 @@
+09-missing-implementation.ck:14:22: error: cannot find function 'bar_func' in definition of class 'Foo'
+[14] class Foo implements Bar, Meow, Woosh{
+                          ^

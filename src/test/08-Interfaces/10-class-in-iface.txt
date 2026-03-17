@@ -1,0 +1,3 @@
+10-class-in-iface.ck:2:1: error: cannot declare classes within an interface declaration
+[2] }
+    ^

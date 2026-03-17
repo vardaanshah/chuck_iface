@@ -1,0 +1,3 @@
+12-class-and-func-body.ck:1:2: error: cannot declare statements within an interface declaration
+[1] interface Woosh {
+     ^

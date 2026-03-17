@@ -1,0 +1,3 @@
+05-wrong-return.ck:14:22: error: function 'woosh_func' in definition of class 'Foo' does not have the required return type.
+[14] class Foo implements Bar, Meow, Woosh{
+                          ^

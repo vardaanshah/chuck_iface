@@ -4882,10 +4882,6 @@ t_CKBOOL emit_engine_emit_exp_dot_member( Chuck_Emitter * emit,
             value = type_engine_find_value( t_base, member->xid );
             func = value->func_ref;
 
-            if (emit->env->func)
-            {
-                printf("placeholder");
-            }
 
             //if the base is an interface value, dereference the interface value
             if (t_base->is_iface && !(emit->env->func))

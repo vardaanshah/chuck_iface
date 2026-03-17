@@ -1,0 +1,3 @@
+11-func-body-in-iface.ck:15:22: error: cannot find function 'woosh_func' in definition of class 'Foo'
+[15] class Foo implements Bar, Meow, Woosh{
+                          ^

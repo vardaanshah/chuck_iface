@@ -1,0 +1,4 @@
+"this is a foo" :(string)
+result:  3 
+"this is a woosh" :(string)
+result:  3 

@@ -1,0 +1,6 @@
+03-implement-missing-iface.ck:12:27: error: IFACES 1 undefined type 'Meow.Woosh'...
+[12] class Foo implements Bar, Meow, Woosh{
+                               ^
+03-implement-missing-iface.ck:12:22: error: undefined interface 'Bar.Meow.Woosh' in definition of class 'Foo'
+[12] class Foo implements Bar, Meow, Woosh{
+                          ^

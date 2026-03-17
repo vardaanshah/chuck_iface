@@ -1,0 +1,5 @@
+instrument one played  1 
+instrument 2 played  1  in tone  4 
+instrument 3 played with tone 7 
+instrument 3, overriding 2, played  6 
+instrument 3, overriding 2, played  65 
