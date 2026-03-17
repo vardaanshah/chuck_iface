@@ -1,3 +1,84 @@
+# Vardaan's Preliminary ChucK Interface Implementation
+
+## Description
+
+Like in Java, interfaces are implicitly public, purely abstract, and include function declarations without bodies. However, currently, ChucK interfaces cannot include any data members at all, even static data members. In addition, ChucK interfaces cannot have default implementations, unlike their modern Java counterparts.
+
+ChucK interfaces cannot include class definitions or interface definitions, or any kind of statement other than function declarations without bodies.
+
+Classes can implement 0, 1, or more interfaces. They must have all the functions defined in the interface with the same signature. The arguments can have different names, but they must be of identical types. The return type must be the same, and the function name must be the same.
+
+Interfaces cannot be instantiated. Only references to interfaces can be made, and then filled with instantiated classes.
+
+example:
+
+```
+
+interface Bar {
+...
+}
+
+class Foo implements Bar {
+...
+}
+
+class Woosh implements Bar {
+...
+}
+
+Bar bar1; //not allowed
+
+Bar @ bar1; //allowed
+
+Foo foo1; //allowed
+
+Woosh woosh1;
+
+foo1 @=> bar1; //allowed, now bar1 refers to foo1.
+
+woosh1 @=> bar1; //allowed, now bar1 refers to woosh1.
+
+```
+
+Functions can be called from the reference object, and the correct method will be called on the underlying instance.
+
+## Testing/Issues
+
+This implementation is not perfect by any means. There are some behaviors I have tested that work, some behaviors I have tested that do not work, and some behaviors I have not tested.
+
+### Tested Successful Behaviors
+
+- a class implementing 1 interface
+- a class implementing multiple interfaces
+- a class implementing multiple interfaces that share a method signature
+- a class extending another class and simultaneously implementing an interface
+- a class extending another class and simultaneously implementing multiple interfaces
+- changing the interface reference's  underlying object
+- including an interface reference as a instance variable of another class
+	- calling a method on that interface reference within a method of that class
+- including an interface reference as a function argument
+
+### Tested Unsuccesful Behaviors
+
+- a reference "a" is created and pointed to an underlying object "x". another reference "b" is created and pointed to reference "a". reference "a" is then changed to point to underlying object "y". the desired behavior is that calling a function on reference "b" would call the function for object "y". however, currently, reference "b" still calls the function for object "x".
+	- although this is definitely not the right behavior, it also happens to regular classes that do not implement interfaces. not sure what the "real" desired behavior is, or whether double references are just something people should avoid.
+
+### Untested Behaviors
+
+- large numbers of interface declarations
+- a class implementing a large number of interfaces
+- passing an interface type as a Type type
+- interactions with the `super` keyword
+- overloaded methods in class when not overloaded in interface
+- interfaces extending other interfaces
+- probably a lot of others
+
+## Implementation Details
+
+One can examine the code I've provided at my fork of the ChucK repository, but the overall goal of this implementation was to have as little of an impact on the performance of regular inheritance-based code as possible. Currently, when one assigns an instantiated class to a reference interface, a new map I created in emitter->env updates--the key is the reference, with it's base if it's an instance member, and the value is the instantiated class. When a function is called on the reference type, the program checks whether the reference type is an interface type. If so, it looks up the interface type in the map, and then emits the appropriate method based on the type of the resultant value. Each type that implements an interface also includes a "thunk" map that maps between the function in the interface type to the same function in the base type.
+
+Currently, the error messages for the type-checker are not too bad, but if the emitter fails because of this, the error messages are limited to non-existent.
+
 # ChucK [![macOS - build & unit tests](https://github.com/ccrma/chuck/actions/workflows/macos-build-unit-tests.yml/badge.svg)](https://github.com/ccrma/chuck/actions/workflows/macos-build-unit-tests.yml) [![Linux - build & unit tests](https://github.com/ccrma/chuck/actions/workflows/linux-build-unit-tests.yml/badge.svg)](https://github.com/ccrma/chuck/actions/workflows/linux-build-unit-tests.yml) [![Windows - build & unit tests](https://github.com/ccrma/chuck/actions/workflows/win-build-unit-tests.yml/badge.svg)](https://github.com/ccrma/chuck/actions/workflows/win-build-unit-tests.yml)
 
 
