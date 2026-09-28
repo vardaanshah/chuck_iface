@@ -39,6 +39,7 @@
 #include "chuck_oo.h"
 #include "chuck_dl.h"
 #include "chuck_errmsg.h"
+#include <unordered_map>
 
 
 //-----------------------------------------------------------------------------
