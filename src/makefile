@@ -108,6 +108,8 @@ CFLAGS+=-I. -I$(CK_CORE_DIR) -I$(CK_CORE_DIR)/lo
 
 # Code coverage
 
+CHUCK_DEBUG=1
+
 # enable chuck debug macros?
 ifneq ($(COVERAGE_REPORT),)
 CFLAGS+=-fprofile-arcs
@@ -151,7 +153,6 @@ endif
 # ge: commenting out; breaks Math.isinf() since it assumes all finite
 # https://stackoverflow.com/questions/7420665/what-does-gccs-ffast-math-actually-do
 # https://simonbyrne.github.io/notes/fastmath/
-
 
 ######################## PLATFORM-SPECIFIC CONFIGS ############################
 
@@ -272,7 +273,7 @@ CFLAGSDEPEND_HOST=${CFLAGSDEPEND} ${CFLAGS_HOST}
 
 # compile chuck
 chuck: chuck-core $(COBJS_HOST) $(CXXOBJS_HOST)
-	$(LD) -o chuck $(OBJS) $(LDFLAGS) $(ARCHOPTS)
+	$(LD) -o  chuck $(OBJS) $(LDFLAGS) $(ARCHOPTS)
 
 # build receipt for host c objects
 $(COBJS_HOST): %.o: %.c

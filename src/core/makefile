@@ -18,6 +18,8 @@ LD=g++
 
 CFLAGS+=-I. -Ilo
 
+CHUCK_DEBUG=1
+
 ifneq ($(COVERAGE_REPORT),)
 CFLAGS+=-fprofile-arcs
 CFLAGS+=-ftest-coverage

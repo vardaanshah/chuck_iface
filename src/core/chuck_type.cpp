@@ -7398,6 +7398,9 @@ Chuck_Type * type_engine_import_class_begin( Chuck_Env * env, const char * name,
     // allocate type
     type = new Chuck_Type( env, te_user, name, parent, sizeof(void *) );
 
+    type->is_iface = 0;
+    type->how_many_impl = 0;
+
     // add to namespace - TODO: handle failure, remove from where
     where->add_type( name, type );
 
@@ -10404,6 +10407,8 @@ Chuck_Type::Chuck_Type( Chuck_Env * env, te_Type _id, const std::string & _n,
     func_bridge = NULL; /* def = NULL; */
     is_public = FALSE;
     is_copy = FALSE;
+    is_iface = 0;
+    how_many_impl = 0;
     ugen_info = NULL;
     is_complete = TRUE;
     has_pre_ctor = FALSE;
@@ -10495,6 +10500,8 @@ const Chuck_Type & Chuck_Type::operator =( const Chuck_Type & rhs )
     this->array_type = rhs.array_type; CK_SAFE_ADD_REF(this->array_type);
     this->func_bridge = rhs.func_bridge; CK_SAFE_ADD_REF(this->func_bridge);
     this->nspc = rhs.nspc; CK_SAFE_ADD_REF(this->nspc);
+    this->is_iface = rhs.is_iface;
+    this->how_many_impl = rhs.how_many_impl;
     // this->owner = rhs.owner; CK_SAFE_ADD_REF(this->owner);
 
     return *this;

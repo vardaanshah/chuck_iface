@@ -1027,7 +1027,7 @@ struct Chuck_Type : public Chuck_Object
     Chuck_Type * parent_type;
     //the types that this type implements
     std::vector<t_CKTYPE> implementing_types;
-    std::map<Chuck_Func *, Chuck_Func *> thunk;
+    std::unordered_map<Chuck_Func *, Chuck_Func *> thunk;
     t_CKUINT how_many_impl;
     // size (in bytes)
     t_CKUINT size;

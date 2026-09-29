@@ -1603,9 +1603,9 @@ t_CKBOOL go( int argc, const char ** argv )
     }
 
     // debug print: print all vm objects
-    CK_VM_DEBUGGER( print_all_objects() );
+   // CK_VM_DEBUGGER( print_all_objects() );
     // debug print: print vm objects stats
-    CK_VM_DEBUGGER( print_stats() );
+   // CK_VM_DEBUGGER( print_stats() );
 
 
     //------------------------- STARTING AUDIO I/O ----------------------------
