@@ -564,6 +564,11 @@ t_CKBOOL type_engine_scan1_stmt( Chuck_Env * env, a_Stmt stmt )
             ret = TRUE;
             break;
 
+        case ae_stmt_example: // 1.5.5.8 (ge,nick,alex) added
+            // do nothing here (return true to bypass)
+            ret = TRUE;
+            break;
+
         case ae_stmt_if:
             // count scope to help determine class member
             env->class_scope++;
@@ -1837,6 +1842,11 @@ t_CKBOOL type_engine_scan2_stmt( Chuck_Env * env, a_Stmt stmt )
             break;
 
         case ae_stmt_doc: // 1.5.4.4 (ge) added
+            // do nothing here (return true to bypass)
+            ret = TRUE;
+            break;
+
+        case ae_stmt_example: // 1.5.5.8 (ge,nick,alex) added
             // do nothing here (return true to bypass)
             ret = TRUE;
             break;
